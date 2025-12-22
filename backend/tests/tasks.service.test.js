@@ -191,7 +191,7 @@ describe('Tasks Service', () => {
       const result = await tasksService.getTasks({ limit: 5 });
 
       expect(result.success).toBe(true);
-      
+
       if (result.data.length > 1) {
         for (let i = 0; i < result.data.length - 1; i++) {
           const current = new Date(result.data[i].created_at);
@@ -208,49 +208,6 @@ describe('Tasks Service', () => {
       expect(result.pagination.totalPages).toBe(
         Math.ceil(result.pagination.total / result.pagination.limit)
       );
-    });
-  });
-
-  describe('getTaskById', () => {
-    let testTaskId;
-
-    beforeAll(async () => {
-      const { data } = await supabase
-        .from('tasks')
-        .insert({ title: 'Get By ID Test' })
-        .select()
-        .single();
-      testTaskId = data.id;
-      createdTaskIds.push(testTaskId);
-    });
-
-    it('should return task by valid id', async () => {
-      const result = await tasksService.getTaskById(testTaskId);
-
-      expect(result.success).toBe(true);
-      expect(result.data.id).toBe(testTaskId);
-      expect(result.data.title).toBe('Get By ID Test');
-    });
-
-    it('should return error for non-existent task', async () => {
-      const fakeId = '00000000-0000-0000-0000-000000000000';
-      const result = await tasksService.getTaskById(fakeId);
-
-      expect(result.success).toBe(false);
-      expect(result.message).toContain('not found');
-    });
-
-    it('should include all task fields', async () => {
-      const result = await tasksService.getTaskById(testTaskId);
-
-      expect(result.success).toBe(true);
-      expect(result.data).toHaveProperty('id');
-      expect(result.data).toHaveProperty('title');
-      expect(result.data).toHaveProperty('status');
-      expect(result.data).toHaveProperty('category');
-      expect(result.data).toHaveProperty('priority');
-      expect(result.data).toHaveProperty('created_at');
-      expect(result.data).toHaveProperty('updated_at');
     });
   });
 

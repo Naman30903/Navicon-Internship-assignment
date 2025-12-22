@@ -1,13 +1,21 @@
 const classificationService = require('../src/services/classification.service');
 
-test('classifyText returns bug for bug keywords', () => {
-  expect(classificationService.classifyText('This has a bug')).toBe('bug');
-});
+describe('classification.service', () => {
+  test('Category detection: scheduling keywords -> scheduling', () => {
+    expect(classificationService.detectCategory('Schedule a meeting with John')).toBe('scheduling');
+  });
 
-test('classifyText returns feature for feature keywords', () => {
-  expect(classificationService.classifyText('Add new feature')).toBe('feature');
-});
+  test('Priority detection: urgency indicators -> high', () => {
+    expect(classificationService.detectPriority('This is urgent, please fix ASAP')).toBe('high');
+  });
 
-test('classifyText falls back to task', () => {
-  expect(classificationService.classifyText('Simple task description')).toBe('task');
+  test('Entity extraction: dates + person + location', () => {
+    const entities = classificationService.extractEntities(
+      'Schedule a meeting with John Doe today at Site Office 2pm'
+    );
+
+    expect(entities.dates).toEqual(expect.arrayContaining(['today', '2pm']));
+    expect(entities.people).toEqual(expect.arrayContaining(['John Doe']));
+    expect(entities.locations).toEqual(expect.arrayContaining(['Site Office']));
+  });
 });

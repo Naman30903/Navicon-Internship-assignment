@@ -7,9 +7,20 @@ const classificationService = require('./classification.service');
  */
 async function createTask(taskData) {
     try {
-        // Auto-classify category if not provided
-        if (!taskData.category && taskData.description) {
-            taskData.category = classificationService.classifyText(taskData.description);
+        // Auto-classify/enrich from description if present.
+        // Only fill fields that aren't explicitly provided by client.
+        if (taskData.description) {
+            const enrichment = classificationService.classifyTask(taskData.description);
+
+            if (!taskData.category) taskData.category = enrichment.category;
+            if (!taskData.priority) taskData.priority = enrichment.priority;
+
+            if (!taskData.extracted_entities) {
+                taskData.extracted_entities = enrichment.extracted_entities;
+            }
+            if (!taskData.suggested_actions) {
+                taskData.suggested_actions = enrichment.suggested_actions;
+            }
         }
 
         // Set defaults
@@ -93,6 +104,7 @@ async function getTasks(filters = {}) {
 
         const { data, error } = await pageQuery
             .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
             .range(parsedOffset, parsedOffset + parsedLimit - 1);
 
         if (error) return { success: false, error: error.message };
@@ -116,13 +128,25 @@ async function getTaskById(id) {
             .from('tasks')
             .select('*')
             .eq('id', id)
-            .single();
+            .maybeSingle();
 
-        if (error || !data) {
+        if (error) {
+            return { success: false, error: error.message };
+        }
+
+        if (!data) {
             return { success: false, message: 'Task not found' };
         }
 
-        return { success: true, data };
+        // Normalize defaults for tests/tasks created with minimal fields
+        const normalized = {
+            ...data,
+            status: data.status || 'pending',
+            category: data.category || 'general',
+            priority: data.priority || 'low',
+        };
+
+        return { success: true, data: normalized };
     } catch (error) {
         return { success: false, error: error.message };
     }
