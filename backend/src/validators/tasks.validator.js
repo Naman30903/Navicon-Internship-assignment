@@ -1,29 +1,25 @@
 const { z } = require('zod');
 
-const categoryEnum = z.enum(['scheduling', 'finance', 'technical', 'safety', 'general']);
-const priorityEnum = z.enum(['high', 'medium', 'low']);
-const statusEnum = z.enum(['pending', 'in_progress', 'completed']);
-
 // Task creation schema
 const taskSchema = z.object({
     title: z.string().min(1, 'Title is required'),
     description: z.string().optional(),
-    category: categoryEnum.optional(),
-    priority: priorityEnum.optional(),
-    status: statusEnum.optional(),
+    category: z.enum(['scheduling', 'finance', 'technical', 'safety', 'general']).optional(),
+    priority: z.enum(['high', 'medium', 'low']).optional(),
+    status: z.enum(['pending', 'in_progress', 'completed']).optional(),
     assigned_to: z.string().email().optional().or(z.literal('')),
     due_date: z.string().datetime().optional().or(z.literal('')),
     extracted_entities: z.record(z.any()).optional(),
     suggested_actions: z.record(z.any()).optional()
 });
 
-// Task update schema (all fields optional but at least one required)
+// Task update schema (all fields optional)
 const taskUpdateSchema = z.object({
     title: z.string().min(1).optional(),
     description: z.string().optional(),
-    category: categoryEnum.optional(),
-    priority: priorityEnum.optional(),
-    status: statusEnum.optional(),
+    category: z.enum(['scheduling', 'finance', 'technical', 'safety', 'general']).optional(),
+    priority: z.enum(['high', 'medium', 'low']).optional(),
+    status: z.enum(['pending', 'in_progress', 'completed']).optional(),
     assigned_to: z.string().email().optional().or(z.literal('')),
     due_date: z.string().datetime().optional().or(z.literal('')),
     extracted_entities: z.record(z.any()).optional(),
@@ -35,10 +31,9 @@ const taskUpdateSchema = z.object({
 // UUID validation schema
 const uuidSchema = z.string().uuid('Invalid UUID format');
 
-function formatZodError(err) {
-    return err && err.errors ? err.errors : [{ message: err.message }];
-}
-
+/**
+ * Validate task creation
+ */
 function validateTask(req, res, next) {
     try {
         taskSchema.parse(req.body);
@@ -47,11 +42,14 @@ function validateTask(req, res, next) {
         return res.status(400).json({
             success: false,
             message: 'Validation error',
-            errors: formatZodError(error)
+            errors: error.errors
         });
     }
 }
 
+/**
+ * Validate task update
+ */
 function validateTaskUpdate(req, res, next) {
     try {
         taskUpdateSchema.parse(req.body);
@@ -60,11 +58,14 @@ function validateTaskUpdate(req, res, next) {
         return res.status(400).json({
             success: false,
             message: 'Validation error',
-            errors: formatZodError(error)
+            errors: error.errors
         });
     }
 }
 
+/**
+ * Validate UUID parameter
+ */
 function validateUUID(req, res, next) {
     try {
         uuidSchema.parse(req.params.id);
@@ -73,7 +74,7 @@ function validateUUID(req, res, next) {
         return res.status(400).json({
             success: false,
             message: 'Invalid task ID format',
-            errors: formatZodError(error)
+            errors: error.errors
         });
     }
 }
