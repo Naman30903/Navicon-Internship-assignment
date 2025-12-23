@@ -70,6 +70,7 @@ class TaskRepository {
     String? category,
     String? priority,
     String? assignedTo,
+    String? dueDate,
   }) async {
     try {
       final taskData = <String, dynamic>{
@@ -79,6 +80,7 @@ class TaskRepository {
         if (category != null) 'category': category,
         if (priority != null) 'priority': priority,
         if (assignedTo != null) 'assigned_to': assignedTo,
+        if (dueDate != null) 'due_date': dueDate,
       };
 
       final response = await _apiClient.post('/tasks', data: taskData);

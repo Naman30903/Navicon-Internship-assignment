@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:frontend/models/task_classification_model.dart';
 import '../api/api_client.dart';
 import '../models/task_model.dart';
-import '../models/task_classification.dart';
 import '../repositories/task_repository.dart';
 
 // API Client Provider
@@ -57,6 +57,7 @@ class CreateTaskNotifier extends AsyncNotifier<TaskModel?> {
     String? category,
     String? priority,
     String? assignedTo,
+    String? dueDate,
   }) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
@@ -68,6 +69,7 @@ class CreateTaskNotifier extends AsyncNotifier<TaskModel?> {
         category: category,
         priority: priority,
         assignedTo: assignedTo,
+        dueDate: dueDate,
       );
       // Invalidate task list to refresh after creation
       ref.invalidate(taskListProvider);
