@@ -142,6 +142,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  flutter_dotenv:
+    dependency: "direct main"
+    description:
+      name: flutter_dotenv
+      sha256: d4130c4a43e0b13fefc593bc3961f2cb46e30cb79e253d4a526b1b5d24ae1ce4
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.0.0"
   flutter_lints:
     dependency: "direct dev"
     description:
@@ -150,6 +158,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.0.0"
+  flutter_riverpod:
+    dependency: "direct main"
+    description:
+      name: flutter_riverpod
+      sha256: "9e2d6907f12cc7d23a846847615941bddee8709bf2bfd274acdf5e80bcf22fde"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.3"
   flutter_test:
     dependency: "direct dev"
     description: flutter
