@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/constant/padding.dart';
+import 'package:frontend/constant/radii.dart';
 import 'package:frontend/riverpod/task_provider.dart';
 
 import '../ui/status_count.dart';
@@ -40,8 +41,60 @@ class TaskListScreen extends ConsumerWidget {
                       itemCount: tasks.length,
                       separatorBuilder: (_, __) =>
                           const SizedBox(height: AppSpace.md),
-                      itemBuilder: (context, index) =>
-                          TaskCard(task: tasks[index]),
+                      itemBuilder: (context, index) {
+                        final task = tasks[index];
+
+                        return Dismissible(
+                          key: ValueKey(task.id),
+                          direction: DismissDirection.endToStart,
+                          confirmDismiss: (_) async {
+                            return await showDialog<bool>(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Delete task?'),
+                                    content: const Text(
+                                      'This action cannot be undone.',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, false),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      FilledButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, true),
+                                        child: const Text('Delete'),
+                                      ),
+                                    ],
+                                  ),
+                                ) ??
+                                false;
+                          },
+                          onDismissed: (_) async {
+                            await ref
+                                .read(deleteTaskProvider.notifier)
+                                .deleteTask(task.id);
+
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Task deleted')),
+                            );
+                          },
+                          background: Container(
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpace.lg,
+                            ),
+                            decoration: BoxDecoration(
+                              color: cs.errorContainer,
+                              borderRadius: BorderRadius.circular(AppRadii.lg),
+                            ),
+                            child: Icon(Icons.delete, color: cs.error),
+                          ),
+                          child: TaskCard(task: task),
+                        );
+                      },
                     ),
             );
           },
