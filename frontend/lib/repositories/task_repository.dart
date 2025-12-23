@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:frontend/models/task_classification_model.dart';
 import '../api/api_client.dart';
 import '../models/task_model.dart';
 import '../models/pagination_model.dart';
@@ -135,6 +136,21 @@ class TaskRepository {
     } on DioException catch (e) {
       throw _handleDioError(e);
     }
+  }
+
+  /// Classify a task based on its description
+  Future<TaskClassification> classifyTask({required String description}) async {
+    final response = await _apiClient.post(
+      '/tasks/classify',
+      data: {'description': description},
+    );
+
+    if (response.data['success'] == true) {
+      return TaskClassification.fromJson(
+        response.data['data'] as Map<String, dynamic>,
+      );
+    }
+    throw Exception(response.data['error'] ?? 'Failed to classify task');
   }
 
   Exception _handleDioError(DioException error) {

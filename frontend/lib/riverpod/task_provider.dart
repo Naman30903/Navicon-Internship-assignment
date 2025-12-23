@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/api_client.dart';
 import '../models/task_model.dart';
+import '../models/task_classification.dart';
 import '../repositories/task_repository.dart';
 
 // API Client Provider
@@ -136,6 +137,29 @@ class DeleteTaskNotifier extends AsyncNotifier<bool> {
       ref.invalidate(taskListProvider);
       return true;
     });
+  }
+}
+
+// Classify Task Provider
+final classifyTaskProvider =
+    AsyncNotifierProvider<ClassifyTaskNotifier, TaskClassification?>(
+      ClassifyTaskNotifier.new,
+    );
+
+class ClassifyTaskNotifier extends AsyncNotifier<TaskClassification?> {
+  @override
+  Future<TaskClassification?> build() async => null;
+
+  Future<void> classify({required String description}) async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final repo = ref.read(taskRepositoryProvider);
+      return repo.classifyTask(description: description);
+    });
+  }
+
+  void reset() {
+    state = const AsyncValue.data(null);
   }
 }
 
