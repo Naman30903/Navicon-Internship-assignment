@@ -3,6 +3,9 @@ const router = express.Router();
 const tasksController = require('../controllers/tasks.controller');
 const { validateTask, validateTaskUpdate, validateUUID } = require('../validators/tasks.schema');
 
+// POST /api/tasks/classify - Preview auto-classification without creating a task
+router.post('/classify', tasksController.classifyTask);
+
 // POST /api/tasks - Create a new task
 router.post('/', validateTask, tasksController.createTask);
 

@@ -1,5 +1,6 @@
 const tasksService = require('../services/tasks.service');
 const historyService = require('../services/history.service');
+const classificationService = require('../services/classification.service');
 
 /**
  * Create a new task
@@ -18,6 +19,39 @@ async function createTask(req, res) {
         return res.status(201).json({
             success: true,
             data: result.data
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: error.message
+        });
+    }
+}
+
+/**
+ * Preview classification/enrichment for a task description without creating a task.
+ *
+ * Route: POST /api/tasks/classify
+ * Body: { description: string }
+ */
+async function classifyTask(req, res) {
+    try {
+        const { description } = req.body || {};
+
+        if (!description || typeof description !== 'string' || !description.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: 'Validation error',
+                errors: [{ message: 'Description is required' }]
+            });
+        }
+
+        const data = classificationService.classifyTask(description);
+
+        return res.status(200).json({
+            success: true,
+            data
         });
     } catch (error) {
         return res.status(500).json({
@@ -180,6 +214,7 @@ async function getTaskHistory(req, res) {
 
 module.exports = {
     createTask,
+    classifyTask,
     getTasks,
     getTaskById,
     updateTask,

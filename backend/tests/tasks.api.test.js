@@ -37,7 +37,7 @@ describe('Tasks API', () => {
       expect(response.body.data).toHaveProperty('id');
       expect(response.body.data.title).toBe(newTask.title);
       expect(response.body.data.status).toBe('pending');
-      
+
       createdTaskId = response.body.data.id;
     });
 
@@ -86,6 +86,36 @@ describe('Tasks API', () => {
 
       // Cleanup
       await supabase.from('tasks').delete().eq('id', taskId);
+    });
+  });
+
+  describe('POST /api/tasks/classify', () => {
+    it('should return classification for a description', async () => {
+      const response = await request(app)
+        .post('/api/tasks/classify')
+        .send({ description: 'Schedule a meeting with John Doe today at Site Office 2pm' })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.data).toHaveProperty('category', 'scheduling');
+      expect(response.body.data).toHaveProperty('priority', 'high');
+      expect(response.body.data).toHaveProperty('extracted_entities');
+      expect(response.body.data.extracted_entities.people).toEqual(
+        expect.arrayContaining(['John Doe'])
+      );
+      expect(response.body.data).toHaveProperty('suggested_actions');
+      expect(response.body.data.suggested_actions.actions).toEqual(
+        expect.arrayContaining(['Block calendar'])
+      );
+    });
+
+    it('should return 400 for missing description', async () => {
+      const response = await request(app)
+        .post('/api/tasks/classify')
+        .send({})
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
     });
   });
 
@@ -219,7 +249,7 @@ describe('Tasks API', () => {
     beforeEach(async () => {
       const { data } = await supabase
         .from('tasks')
-        .insert({ 
+        .insert({
           title: 'Update Test Task',
           status: 'pending',
           priority: 'low'
