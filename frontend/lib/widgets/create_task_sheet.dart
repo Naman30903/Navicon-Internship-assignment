@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/riverpod/task_provider.dart';
 import 'package:frontend/widgets/dropdownfield.dart';
 import 'package:frontend/widgets/due_date_field.dart';
-import 'package:frontend/widgets/keyvalue.dart';
 
 import '../constant/padding.dart';
 
@@ -220,8 +219,8 @@ class _CreateTaskSheetState extends ConsumerState<CreateTaskSheet> {
             ),
           ),
           const SizedBox(height: AppSpace.sm),
-          KeyValueRow(label: 'Category', value: classification.category),
-          KeyValueRow(label: 'Priority', value: classification.priority),
+          _KeyValueRow(label: 'Category', value: classification.category),
+          _KeyValueRow(label: 'Priority', value: classification.priority),
 
           const SizedBox(height: AppSpace.lg),
           Text(
@@ -325,4 +324,26 @@ class _CreateTaskSheetState extends ConsumerState<CreateTaskSheet> {
   }
 }
 
-// KeyValueRow moved to shared widget: lib/widgets/keyvalue.dart
+class _KeyValueRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _KeyValueRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpace.xs),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 88,
+            child: Text(label, style: theme.textTheme.labelMedium),
+          ),
+          Expanded(child: Text(value, style: theme.textTheme.bodyMedium)),
+        ],
+      ),
+    );
+  }
+}
