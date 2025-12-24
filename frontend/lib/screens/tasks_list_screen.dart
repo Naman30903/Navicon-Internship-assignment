@@ -15,6 +15,7 @@ import 'package:frontend/widgets/server_banner.dart';
 import 'package:frontend/widgets/summary_row.dart';
 
 import '../constant/task_sort.dart';
+import '../riverpod/theme_provider.dart';
 import '../widgets/offline_banner.dart';
 import '../widgets/task_list_item.dart';
 
@@ -46,6 +47,9 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
     final tasksAsync = ref.watch(taskListProvider(apiFilters));
     final isOffline = ref.watch(isOfflineProvider);
 
+    final themeMode = ref.watch(themeModeProvider);
+    final isDark = themeMode == ThemeMode.dark;
+
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
@@ -73,6 +77,13 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
         title: const Text('Tasks'),
         centerTitle: true,
         automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            tooltip: isDark ? 'Switch to light mode' : 'Switch to dark mode',
+            onPressed: () => ref.read(themeModeProvider.notifier).toggle(),
+            icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(
