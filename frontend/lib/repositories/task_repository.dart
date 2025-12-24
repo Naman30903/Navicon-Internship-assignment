@@ -83,7 +83,7 @@ class TaskRepository {
         if (dueDate != null) 'due_date': dueDate,
       };
 
-      final response = await _apiClient.post('/tasks', data: taskData);
+      final response = await _apiClient.dio.post('/tasks', data: taskData);
 
       if (response.data['success'] == true) {
         return TaskModel.fromJson(response.data['data']);
@@ -104,6 +104,7 @@ class TaskRepository {
     String? category,
     String? priority,
     String? assignedTo,
+    String? dueDate,
   }) async {
     try {
       final updates = <String, dynamic>{
@@ -113,9 +114,10 @@ class TaskRepository {
         if (category != null) 'category': category,
         if (priority != null) 'priority': priority,
         if (assignedTo != null) 'assigned_to': assignedTo,
+        if (dueDate != null) 'due_date': dueDate,
       };
 
-      final response = await _apiClient.put('/tasks/$id', data: updates);
+      final response = await _apiClient.dio.patch('/tasks/$id', data: updates);
 
       if (response.data['success'] == true) {
         return TaskModel.fromJson(response.data['data']);

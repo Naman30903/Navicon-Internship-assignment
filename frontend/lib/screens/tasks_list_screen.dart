@@ -10,6 +10,7 @@ import '../widgets/empty_state.dart';
 import '../widgets/summary_row.dart';
 import '../widgets/task_card.dart';
 import '../ui/task_list_layout.dart';
+import 'tasks_detail.dart';
 
 class TaskListScreen extends ConsumerWidget {
   const TaskListScreen({super.key});
@@ -92,7 +93,11 @@ class TaskListScreen extends ConsumerWidget {
                             ),
                             child: Icon(Icons.delete, color: cs.error),
                           ),
-                          child: TaskCard(task: task),
+                          child: TaskCard(
+                            task: task,
+                            onTap: () =>
+                                TaskDetailsSheet.show(context, ref, task),
+                          ),
                         );
                       },
                     ),

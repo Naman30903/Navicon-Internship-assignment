@@ -98,6 +98,7 @@ class UpdateTaskNotifier extends AsyncNotifier<TaskModel?> {
     String? category,
     String? priority,
     String? assignedTo,
+    String? dueDate,
   }) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
@@ -110,8 +111,8 @@ class UpdateTaskNotifier extends AsyncNotifier<TaskModel?> {
         category: category,
         priority: priority,
         assignedTo: assignedTo,
+        dueDate: dueDate,
       );
-      // Invalidate relevant providers
       ref.invalidate(taskListProvider);
       ref.invalidate(taskByIdProvider(id));
       return task;

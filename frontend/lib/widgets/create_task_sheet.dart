@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/riverpod/task_provider.dart';
+import 'package:frontend/widgets/dropdownfield.dart';
+import 'package:frontend/widgets/due_date_field.dart';
+import 'package:frontend/widgets/keyvalue.dart';
 
 import '../constant/padding.dart';
 
@@ -130,7 +133,7 @@ class _CreateTaskSheetState extends ConsumerState<CreateTaskSheet> {
         ),
         const SizedBox(height: AppSpace.md),
 
-        _DueDateField(
+        DueDateField(
           dueDate: _dueDate,
           onPick: () async {
             final picked = await showDatePicker(
@@ -217,8 +220,8 @@ class _CreateTaskSheetState extends ConsumerState<CreateTaskSheet> {
             ),
           ),
           const SizedBox(height: AppSpace.sm),
-          _KeyValueRow(label: 'Category', value: classification.category),
-          _KeyValueRow(label: 'Priority', value: classification.priority),
+          KeyValueRow(label: 'Category', value: classification.category),
+          KeyValueRow(label: 'Priority', value: classification.priority),
 
           const SizedBox(height: AppSpace.lg),
           Text(
@@ -233,7 +236,7 @@ class _CreateTaskSheetState extends ConsumerState<CreateTaskSheet> {
             spacing: AppSpace.md,
             runSpacing: AppSpace.md,
             children: [
-              _DropdownField<String>(
+              AppDropdownField<String>(
                 label: 'Category',
                 value: _category ?? classification.category,
                 items: const [
@@ -245,7 +248,7 @@ class _CreateTaskSheetState extends ConsumerState<CreateTaskSheet> {
                 ],
                 onChanged: (v) => setState(() => _category = v),
               ),
-              _DropdownField<String>(
+              AppDropdownField<String>(
                 label: 'Priority',
                 value: _priority ?? classification.priority,
                 items: const ['low', 'medium', 'high'],
@@ -322,96 +325,4 @@ class _CreateTaskSheetState extends ConsumerState<CreateTaskSheet> {
   }
 }
 
-class _DueDateField extends StatelessWidget {
-  final DateTime? dueDate;
-  final VoidCallback onPick;
-  final VoidCallback onClear;
-
-  const _DueDateField({
-    required this.dueDate,
-    required this.onPick,
-    required this.onClear,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final label = dueDate == null
-        ? 'Pick due date'
-        : '${dueDate!.year}-${dueDate!.month.toString().padLeft(2, '0')}-${dueDate!.day.toString().padLeft(2, '0')}';
-
-    return Row(
-      children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: onPick,
-            icon: const Icon(Icons.calendar_today),
-            label: Text(label),
-          ),
-        ),
-        if (dueDate != null) ...[
-          const SizedBox(width: AppSpace.md),
-          IconButton(
-            onPressed: onClear,
-            icon: const Icon(Icons.clear),
-            tooltip: 'Clear date',
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _KeyValueRow extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _KeyValueRow({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpace.xs),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 88,
-            child: Text(label, style: theme.textTheme.labelMedium),
-          ),
-          Expanded(child: Text(value, style: theme.textTheme.bodyMedium)),
-        ],
-      ),
-    );
-  }
-}
-
-class _DropdownField<T> extends StatelessWidget {
-  final String label;
-  final T value;
-  final List<T> items;
-  final ValueChanged<T> onChanged;
-
-  const _DropdownField({
-    required this.label,
-    required this.value,
-    required this.items,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 160),
-      child: DropdownButtonFormField<T>(
-        initialValue: value,
-        decoration: InputDecoration(labelText: label),
-        items: items
-            .map((e) => DropdownMenuItem<T>(value: e, child: Text('$e')))
-            .toList(),
-        onChanged: (v) {
-          if (v != null) onChanged(v);
-        },
-      ),
-    );
-  }
-}
+// KeyValueRow moved to shared widget: lib/widgets/keyvalue.dart

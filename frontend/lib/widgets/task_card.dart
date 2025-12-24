@@ -6,8 +6,9 @@ import '../ui/priority_style.dart';
 
 class TaskCard extends StatelessWidget {
   final TaskModel task;
+  final VoidCallback? onTap;
 
-  const TaskCard({super.key, required this.task});
+  const TaskCard({super.key, required this.task, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -15,63 +16,70 @@ class TaskCard extends StatelessWidget {
     final cs = theme.colorScheme;
     final priorityStyle = PriorityStyle.from(theme, task.priority);
 
-    return Card(
-      elevation: 0,
-      color: cs.surface,
-      shape: RoundedRectangleBorder(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadii.lg),
-        side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.6)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpace.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+        child: Card(
+          elevation: 0,
+          color: cs.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadii.lg),
+            side: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.6)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpace.lg),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Text(
-                    task.title?.trim().isNotEmpty == true
-                        ? task.title!.trim()
-                        : 'Untitled',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        task.title?.trim().isNotEmpty == true
+                            ? task.title!.trim()
+                            : 'Untitled',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpace.md),
+                    _PriorityBadge(
+                      label: task.priority,
+                      background: priorityStyle.background,
+                      foreground: priorityStyle.foreground,
+                      border: priorityStyle.border,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpace.md),
+                Wrap(
+                  spacing: AppSpace.sm,
+                  runSpacing: AppSpace.sm,
+                  children: [
+                    _CategoryChip(category: task.category),
+                    _StatusChip(status: task.status),
+                  ],
+                ),
+                if ((task.description ?? '').trim().isNotEmpty) ...[
+                  const SizedBox(height: AppSpace.md),
+                  Text(
+                    task.description!.trim(),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: cs.onSurfaceVariant,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                const SizedBox(width: AppSpace.md),
-                _PriorityBadge(
-                  label: task.priority,
-                  background: priorityStyle.background,
-                  foreground: priorityStyle.foreground,
-                  border: priorityStyle.border,
-                ),
+                ],
               ],
             ),
-            const SizedBox(height: AppSpace.md),
-            Wrap(
-              spacing: AppSpace.sm,
-              runSpacing: AppSpace.sm,
-              children: [
-                _CategoryChip(category: task.category),
-                _StatusChip(status: task.status),
-              ],
-            ),
-            if ((task.description ?? '').trim().isNotEmpty) ...[
-              const SizedBox(height: AppSpace.md),
-              Text(
-                task.description!.trim(),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: cs.onSurfaceVariant,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );
