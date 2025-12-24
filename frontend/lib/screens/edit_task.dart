@@ -188,7 +188,9 @@ class _EditTaskSheetState extends ConsumerState<EditTaskSheet> {
       lastDate: DateTime(2100),
     );
     if (picked == null) return;
-    setState(() => _dueDate = picked);
+
+    // store as a date-only value (local), then convert to UTC on send
+    setState(() => _dueDate = DateTime(picked.year, picked.month, picked.day));
   }
 
   DateTime? _tryParseIso(String? iso) {
@@ -196,7 +198,8 @@ class _EditTaskSheetState extends ConsumerState<EditTaskSheet> {
     return DateTime.tryParse(iso);
   }
 
-  String? _dueDateIsoOrNull() => _dueDate?.toIso8601String();
+  // Backend expects a datetime string (RFC3339). Ensure we send timezone ("Z").
+  String? _dueDateIsoOrNull() => _dueDate?.toUtc().toIso8601String();
 
   Future<void> _onSave() async {
     final cs = Theme.of(context).colorScheme;

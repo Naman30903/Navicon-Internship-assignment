@@ -76,7 +76,10 @@ class TaskDetailsSheet extends StatelessWidget {
                     : task.assignedTo!.trim(),
               ),
               const SizedBox(height: AppSpace.md),
-              _ReadOnlyField(label: 'Due date', value: task.dueDate ?? '—'),
+              _ReadOnlyField(
+                label: 'Due date',
+                value: _formatDueDate(task.dueDate),
+              ),
 
               const SizedBox(height: AppSpace.xl),
 
@@ -107,6 +110,19 @@ class TaskDetailsSheet extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  static String _formatDueDate(String? iso) {
+    if (iso == null || iso.trim().isEmpty) return '—';
+    final dt = DateTime.tryParse(iso);
+    if (dt == null) return '—';
+
+    // Convert to local so the date shown matches the user's timezone.
+    final d = dt.toLocal();
+    final dd = d.day.toString().padLeft(2, '0');
+    final mm = d.month.toString().padLeft(2, '0');
+    final yyyy = d.year.toString();
+    return '$dd/$mm/$yyyy';
   }
 }
 

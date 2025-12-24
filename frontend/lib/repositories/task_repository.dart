@@ -163,20 +163,76 @@ class TaskRepository {
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
         return Exception(
-          'Connection timeout. Please check your internet connection.',
+          'Connection timed out. Please check your internet and try again.',
         );
-      case DioExceptionType.badResponse:
-        return Exception(
-          error.response?.data['error'] ??
-              'Server error: ${error.response?.statusCode}',
-        );
-      case DioExceptionType.cancel:
-        return Exception('Request cancelled');
+
       case DioExceptionType.connectionError:
-        return Exception('No internet connection');
+        return Exception('No internet connection. Please try again.');
+
+      case DioExceptionType.cancel:
+        return Exception('Request was cancelled. Please try again.');
+
+      case DioExceptionType.badResponse:
+        final status = error.response?.statusCode;
+        final backendMessage = _extractBackendMessage(error.response?.data);
+
+        if (status == 400) {
+          return Exception(
+            backendMessage ??
+                'Some details look incorrect. Please review and try again.',
+          );
+        }
+        if (status == 401) {
+          return Exception('Your session has expired. Please log in again.');
+        }
+        if (status == 403) {
+          return Exception('You don’t have permission to do that.');
+        }
+        if (status == 404) {
+          return Exception('We couldn’t find what you were looking for.');
+        }
+        if (status != null && status >= 500) {
+          return Exception(
+            'We’re having trouble on our side. Please try again shortly.',
+          );
+        }
+
+        return Exception(
+          backendMessage ?? 'Something went wrong. Please try again.',
+        );
+
       default:
-        return Exception('An unexpected error occurred: ${error.message}');
+        return Exception('Something went wrong. Please try again.');
     }
+  }
+
+  String? _extractBackendMessage(dynamic data) {
+    if (data == null) return null;
+
+    if (data is String) {
+      final s = data.trim();
+      return s.isEmpty ? null : s;
+    }
+
+    if (data is Map) {
+      final message = data['message']?.toString();
+      if (message != null && message.trim().isNotEmpty) return message.trim();
+
+      final error = data['error']?.toString();
+      if (error != null && error.trim().isNotEmpty) return error.trim();
+
+      // Validation errors: { errors: [{ message: "...", path: [...] }, ...] }
+      final errors = data['errors'];
+      if (errors is List && errors.isNotEmpty) {
+        final first = errors.first;
+        if (first is Map) {
+          final m = first['message']?.toString();
+          if (m != null && m.trim().isNotEmpty) return m.trim();
+        }
+      }
+    }
+
+    return null;
   }
 }
 

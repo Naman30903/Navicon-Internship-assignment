@@ -56,7 +56,9 @@ class _CreateTaskSheetState extends ConsumerState<CreateTaskSheet> {
     final horizontalPadding = AppSpace.horizontalPaddingForWidth(maxWidth);
 
     final classifyState = ref.watch(classifyTaskProvider);
+    final createState = ref.watch(createTaskProvider); // <-- add
 
+    // Show classify API errors
     ref.listen(classifyTaskProvider, (prev, next) {
       next.whenOrNull(
         data: (classification) {
@@ -66,6 +68,28 @@ class _CreateTaskSheetState extends ConsumerState<CreateTaskSheet> {
             _priority ??= classification.priority;
             _step = _Step.review;
           });
+        },
+        error: (err, st) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(_uiError(err)),
+              backgroundColor: cs.error,
+            ),
+          );
+        },
+      );
+    });
+
+    // Show create API errors
+    ref.listen(createTaskProvider, (prev, next) {
+      next.whenOrNull(
+        error: (err, st) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(_uiError(err)),
+              backgroundColor: cs.error,
+            ),
+          );
         },
       );
     });
@@ -84,7 +108,7 @@ class _CreateTaskSheetState extends ConsumerState<CreateTaskSheet> {
             duration: const Duration(milliseconds: 200),
             child: _step == _Step.form
                 ? _buildForm(context, classifyState, cs)
-                : _buildReview(context, classifyState, cs),
+                : _buildReview(context, createState, cs), // <-- pass createState
           ),
         ),
       ),
@@ -173,7 +197,7 @@ class _CreateTaskSheetState extends ConsumerState<CreateTaskSheet> {
 
   Widget _buildReview(
     BuildContext context,
-    AsyncValue<dynamic> classifyState,
+    AsyncValue<dynamic> createState, // <-- change from classifyState to createState
     ColorScheme cs,
   ) {
     final theme = Theme.of(context);
@@ -262,9 +286,15 @@ class _CreateTaskSheetState extends ConsumerState<CreateTaskSheet> {
         SizedBox(
           width: double.infinity,
           child: FilledButton.icon(
-            onPressed: _onSavePressed,
-            icon: const Icon(Icons.save),
-            label: const Text('Save task'),
+            onPressed: createState.isLoading ? null : _onSavePressed, // <-- disable while saving
+            icon: createState.isLoading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.save),
+            label: Text(createState.isLoading ? 'Saving…' : 'Save task'),
           ),
         ),
       ],
@@ -295,7 +325,7 @@ class _CreateTaskSheetState extends ConsumerState<CreateTaskSheet> {
     final title = _titleCtrl.text.trim();
     final desc = _descCtrl.text.trim();
     final assignedTo = _assignedToCtrl.text.trim();
-    final dueDateIso = _dueDate?.toIso8601String();
+    final dueDateIso = _dueDate?.toUtc().toIso8601String();
 
     if (title.isEmpty || desc.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -321,6 +351,11 @@ class _CreateTaskSheetState extends ConsumerState<CreateTaskSheet> {
 
     if (!context.mounted) return;
     Navigator.of(context).pop();
+  }
+
+  String _uiError(Object err) {
+    final s = err.toString();
+    return s.startsWith('Exception: ') ? s.replaceFirst('Exception: ', '') : s;
   }
 }
 
