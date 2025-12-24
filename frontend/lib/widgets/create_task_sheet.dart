@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/riverpod/task_provider.dart';
+import 'package:frontend/utils/validators.dart';
 import 'package:frontend/widgets/dropdownfield.dart';
 import 'package:frontend/widgets/due_date_field.dart';
 
@@ -26,6 +27,7 @@ class CreateTaskSheet extends ConsumerStatefulWidget {
 }
 
 class _CreateTaskSheetState extends ConsumerState<CreateTaskSheet> {
+  final _formKey = GlobalKey<FormState>();
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   final _assignedToCtrl = TextEditingController();
@@ -34,7 +36,6 @@ class _CreateTaskSheetState extends ConsumerState<CreateTaskSheet> {
 
   _Step _step = _Step.form;
 
-  // These become editable when we receive classification
   String? _category;
   String? _priority;
 
@@ -56,7 +57,7 @@ class _CreateTaskSheetState extends ConsumerState<CreateTaskSheet> {
     final horizontalPadding = AppSpace.horizontalPaddingForWidth(maxWidth);
 
     final classifyState = ref.watch(classifyTaskProvider);
-    final createState = ref.watch(createTaskProvider); // <-- add
+    final createState = ref.watch(createTaskProvider);
 
     // Show classify API errors
     ref.listen(classifyTaskProvider, (prev, next) {
@@ -71,10 +72,7 @@ class _CreateTaskSheetState extends ConsumerState<CreateTaskSheet> {
         },
         error: (err, st) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(_uiError(err)),
-              backgroundColor: cs.error,
-            ),
+            SnackBar(content: Text(_uiError(err)), backgroundColor: cs.error),
           );
         },
       );
@@ -85,10 +83,7 @@ class _CreateTaskSheetState extends ConsumerState<CreateTaskSheet> {
       next.whenOrNull(
         error: (err, st) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(_uiError(err)),
-              backgroundColor: cs.error,
-            ),
+            SnackBar(content: Text(_uiError(err)), backgroundColor: cs.error),
           );
         },
       );
@@ -108,7 +103,7 @@ class _CreateTaskSheetState extends ConsumerState<CreateTaskSheet> {
             duration: const Duration(milliseconds: 200),
             child: _step == _Step.form
                 ? _buildForm(context, classifyState, cs)
-                : _buildReview(context, createState, cs), // <-- pass createState
+                : _buildReview(context, createState, cs),
           ),
         ),
       ),
@@ -122,82 +117,93 @@ class _CreateTaskSheetState extends ConsumerState<CreateTaskSheet> {
   ) {
     final theme = Theme.of(context);
 
-    return Column(
-      key: const ValueKey('form'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Create Task',
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: AppSpace.lg),
-
-        TextField(
-          controller: _titleCtrl,
-          decoration: const InputDecoration(labelText: 'Title *'),
-          textInputAction: TextInputAction.next,
-        ),
-        const SizedBox(height: AppSpace.md),
-
-        TextField(
-          controller: _descCtrl,
-          decoration: const InputDecoration(labelText: 'Description *'),
-          minLines: 3,
-          maxLines: 8,
-        ),
-        const SizedBox(height: AppSpace.md),
-
-        TextField(
-          controller: _assignedToCtrl,
-          decoration: const InputDecoration(labelText: 'Assigned to (email)'),
-          keyboardType: TextInputType.emailAddress,
-        ),
-        const SizedBox(height: AppSpace.md),
-
-        DueDateField(
-          dueDate: _dueDate,
-          onPick: () async {
-            final picked = await showDatePicker(
-              context: context,
-              initialDate: _dueDate ?? DateTime.now(),
-              firstDate: DateTime(2000),
-              lastDate: DateTime(2100),
-            );
-            if (picked == null) return;
-            setState(() => _dueDate = picked);
-          },
-          onClear: () => setState(() => _dueDate = null),
-        ),
-
-        const SizedBox(height: AppSpace.xl),
-
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton.icon(
-            onPressed: classifyState.isLoading ? null : _onClassifyPressed,
-            icon: classifyState.isLoading
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.auto_awesome),
-            label: Text(
-              classifyState.isLoading
-                  ? 'Classifying…'
-                  : 'Next: Review classification',
+    return Form(
+      key: _formKey,
+      child: Column(
+        key: const ValueKey('form'),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Create Task',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: AppSpace.lg),
+
+          TextFormField(
+            controller: _titleCtrl,
+            decoration: const InputDecoration(labelText: 'Title *'),
+            textInputAction: TextInputAction.next,
+            validator: (v) =>
+                Validators.requiredText(v, message: 'Title is required'),
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+          ),
+          const SizedBox(height: AppSpace.md),
+
+          TextFormField(
+            controller: _descCtrl,
+            decoration: const InputDecoration(labelText: 'Description *'),
+            minLines: 3,
+            maxLines: 8,
+            validator: (v) =>
+                Validators.requiredText(v, message: 'Description is required'),
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+          ),
+          const SizedBox(height: AppSpace.md),
+
+          TextFormField(
+            controller: _assignedToCtrl,
+            decoration: const InputDecoration(labelText: 'Assigned to (email)'),
+            keyboardType: TextInputType.emailAddress,
+            validator: Validators.optionalEmail,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+          ),
+          const SizedBox(height: AppSpace.md),
+
+          DueDateField(
+            dueDate: _dueDate,
+            onPick: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: _dueDate ?? DateTime.now(),
+                firstDate: DateTime(2000),
+                lastDate: DateTime(2100),
+              );
+              if (picked == null) return;
+              setState(() => _dueDate = picked);
+            },
+            onClear: () => setState(() => _dueDate = null),
+          ),
+
+          const SizedBox(height: AppSpace.xl),
+
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: classifyState.isLoading ? null : _onClassifyPressed,
+              icon: classifyState.isLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.auto_awesome),
+              label: Text(
+                classifyState.isLoading
+                    ? 'Classifying…'
+                    : 'Next: Review classification',
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildReview(
     BuildContext context,
-    AsyncValue<dynamic> createState, // <-- change from classifyState to createState
+    AsyncValue<dynamic> createState,
     ColorScheme cs,
   ) {
     final theme = Theme.of(context);
@@ -286,7 +292,7 @@ class _CreateTaskSheetState extends ConsumerState<CreateTaskSheet> {
         SizedBox(
           width: double.infinity,
           child: FilledButton.icon(
-            onPressed: createState.isLoading ? null : _onSavePressed, // <-- disable while saving
+            onPressed: createState.isLoading ? null : _onSavePressed,
             icon: createState.isLoading
                 ? const SizedBox(
                     width: 18,
@@ -302,40 +308,33 @@ class _CreateTaskSheetState extends ConsumerState<CreateTaskSheet> {
   }
 
   Future<void> _onClassifyPressed() async {
-    final title = _titleCtrl.text.trim();
-    final desc = _descCtrl.text.trim();
+    FocusScope.of(context).unfocus();
+    final formOk = _formKey.currentState?.validate() ?? false;
+    if (!formOk) return;
 
-    if (title.isEmpty || desc.isEmpty) {
-      final cs = Theme.of(context).colorScheme;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Title and Description are required'),
-          backgroundColor: cs.error,
-        ),
-      );
-      return;
-    }
+    final desc = _descCtrl.text.trim();
 
     await ref.read(classifyTaskProvider.notifier).classify(description: desc);
   }
 
   Future<void> _onSavePressed() async {
     final cs = Theme.of(context).colorScheme;
-
-    final title = _titleCtrl.text.trim();
-    final desc = _descCtrl.text.trim();
-    final assignedTo = _assignedToCtrl.text.trim();
-    final dueDateIso = _dueDate?.toUtc().toIso8601String();
-
-    if (title.isEmpty || desc.isEmpty) {
+    FocusScope.of(context).unfocus();
+    final formOk = _formKey.currentState?.validate() ?? false;
+    if (!formOk) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Title and Description are required'),
+          content: const Text('Please fix the highlighted fields'),
           backgroundColor: cs.error,
         ),
       );
       return;
     }
+
+    final title = _titleCtrl.text.trim();
+    final desc = _descCtrl.text.trim();
+    final assignedTo = _assignedToCtrl.text.trim();
+    final dueDateIso = _dueDate?.toUtc().toIso8601String();
 
     // Save with override values (if any)
     await ref

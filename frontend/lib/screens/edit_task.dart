@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/constant/padding.dart';
 import 'package:frontend/models/task_model.dart';
 import 'package:frontend/riverpod/task_provider.dart';
+import 'package:frontend/utils/validators.dart';
 
 import '../widgets/dropdownfield.dart';
 import 'package:frontend/widgets/due_date_field.dart';
@@ -27,6 +28,7 @@ class EditTaskSheet extends ConsumerStatefulWidget {
 }
 
 class _EditTaskSheetState extends ConsumerState<EditTaskSheet> {
+  final _formKey = GlobalKey<FormState>();
   late final _titleCtrl = TextEditingController(text: widget.task.title ?? '');
   late final _descCtrl = TextEditingController(
     text: widget.task.description ?? '',
@@ -60,20 +62,31 @@ class _EditTaskSheetState extends ConsumerState<EditTaskSheet> {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
-    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    final maxWidth = MediaQuery.sizeOf(context).width;
-    final horizontalPadding = AppSpace.horizontalPaddingForWidth(maxWidth);
-
     final updateState = ref.watch(updateTaskProvider);
 
+    // Show update API errors
+    ref.listen(updateTaskProvider, (prev, next) {
+      next.whenOrNull(
+        error: (err, st) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(_uiError(err)), backgroundColor: cs.error),
+          );
+        },
+      );
+    });
+
     return Padding(
-      padding: EdgeInsets.only(bottom: bottomInset),
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: SingleChildScrollView(
         child: Padding(
           padding: EdgeInsets.fromLTRB(
-            horizontalPadding,
+            AppSpace.horizontalPaddingForWidth(
+              MediaQuery.sizeOf(context).width,
+            ),
             AppSpace.lg,
-            horizontalPadding,
+            AppSpace.horizontalPaddingForWidth(
+              MediaQuery.sizeOf(context).width,
+            ),
             AppSpace.xl,
           ),
           child: Column(
@@ -87,66 +100,89 @@ class _EditTaskSheetState extends ConsumerState<EditTaskSheet> {
               ),
               const SizedBox(height: AppSpace.lg),
 
-              TextField(
-                controller: _titleCtrl,
-                decoration: const InputDecoration(labelText: 'Title'),
-              ),
-              const SizedBox(height: AppSpace.md),
+              Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    TextFormField(
+                      controller: _titleCtrl,
+                      decoration: const InputDecoration(labelText: 'Title *'),
+                      validator: (v) => Validators.requiredText(
+                        v,
+                        message: 'Title is required',
+                      ),
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                    ),
+                    const SizedBox(height: AppSpace.md),
 
-              TextField(
-                controller: _descCtrl,
-                decoration: const InputDecoration(labelText: 'Description'),
-                minLines: 3,
-                maxLines: 8,
-              ),
-              const SizedBox(height: AppSpace.md),
+                    TextFormField(
+                      controller: _descCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Description *',
+                      ),
+                      minLines: 3,
+                      maxLines: 8,
+                      validator: (v) => Validators.requiredText(
+                        v,
+                        message: 'Description is required',
+                      ),
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                    ),
+                    const SizedBox(height: AppSpace.md),
 
-              TextField(
-                controller: _assignedToCtrl,
-                decoration: const InputDecoration(labelText: 'Assigned to'),
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: AppSpace.md),
+                    TextFormField(
+                      controller: _assignedToCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Assigned to (email)',
+                      ),
+                      keyboardType: TextInputType.emailAddress,
+                      validator: Validators.optionalEmail,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                    ),
+                    const SizedBox(height: AppSpace.md),
 
-              DueDateField(
-                dueDate: _dueDate,
-                onPick: _pickDueDate,
-                onClear: () => setState(() => _dueDate = null),
-              ),
-              const SizedBox(height: AppSpace.md),
+                    DueDateField(
+                      dueDate: _dueDate,
+                      onPick: _pickDueDate,
+                      onClear: () => setState(() => _dueDate = null),
+                    ),
+                    const SizedBox(height: AppSpace.md),
 
-              Wrap(
-                spacing: AppSpace.md,
-                runSpacing: AppSpace.md,
-                children: [
-                  AppDropdownField<String>(
-                    label: 'Status',
-                    value: _status,
-                    items: const ['pending', 'in_progress', 'completed'],
-                    onChanged: (v) => setState(() => _status = v),
-                    minWidth: 170,
-                  ),
-                  AppDropdownField<String>(
-                    label: 'Category',
-                    value: _category,
-                    items: const [
-                      'general',
-                      'technical',
-                      'finance',
-                      'scheduling',
-                      'safety',
-                    ],
-                    onChanged: (v) => setState(() => _category = v),
-                    minWidth: 170,
-                  ),
-                  AppDropdownField<String>(
-                    label: 'Priority',
-                    value: _priority,
-                    items: const ['low', 'medium', 'high'],
-                    onChanged: (v) => setState(() => _priority = v),
-                    minWidth: 170,
-                  ),
-                ],
+                    Wrap(
+                      spacing: AppSpace.md,
+                      runSpacing: AppSpace.md,
+                      children: [
+                        AppDropdownField<String>(
+                          label: 'Status',
+                          value: _status,
+                          items: const ['pending', 'in_progress', 'completed'],
+                          onChanged: (v) => setState(() => _status = v),
+                          minWidth: 170,
+                        ),
+                        AppDropdownField<String>(
+                          label: 'Category',
+                          value: _category,
+                          items: const [
+                            'general',
+                            'technical',
+                            'finance',
+                            'scheduling',
+                            'safety',
+                          ],
+                          onChanged: (v) => setState(() => _category = v),
+                          minWidth: 170,
+                        ),
+                        AppDropdownField<String>(
+                          label: 'Priority',
+                          value: _priority,
+                          items: const ['low', 'medium', 'high'],
+                          onChanged: (v) => setState(() => _priority = v),
+                          minWidth: 170,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: AppSpace.xl),
@@ -180,6 +216,11 @@ class _EditTaskSheetState extends ConsumerState<EditTaskSheet> {
     );
   }
 
+  String _uiError(Object err) {
+    final s = err.toString();
+    return s.startsWith('Exception: ') ? s.replaceFirst('Exception: ', '') : s;
+  }
+
   Future<void> _pickDueDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -189,7 +230,6 @@ class _EditTaskSheetState extends ConsumerState<EditTaskSheet> {
     );
     if (picked == null) return;
 
-    // store as a date-only value (local), then convert to UTC on send
     setState(() => _dueDate = DateTime(picked.year, picked.month, picked.day));
   }
 
@@ -198,22 +238,23 @@ class _EditTaskSheetState extends ConsumerState<EditTaskSheet> {
     return DateTime.tryParse(iso);
   }
 
-  // Backend expects a datetime string (RFC3339). Ensure we send timezone ("Z").
   String? _dueDateIsoOrNull() => _dueDate?.toUtc().toIso8601String();
 
   Future<void> _onSave() async {
     final cs = Theme.of(context).colorScheme;
-
-    final title = _titleCtrl.text.trim();
-    if (title.isEmpty) {
+    FocusScope.of(context).unfocus();
+    final formOk = _formKey.currentState?.validate() ?? false;
+    if (!formOk) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Title is required'),
+          content: const Text('Please fix the highlighted fields'),
           backgroundColor: cs.error,
         ),
       );
       return;
     }
+
+    final title = _titleCtrl.text.trim();
 
     await ref
         .read(updateTaskProvider.notifier)
