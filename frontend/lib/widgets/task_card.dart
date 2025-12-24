@@ -2,13 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:frontend/constant/padding.dart';
 import 'package:frontend/constant/radii.dart';
 import 'package:frontend/models/task_model.dart';
+import 'package:frontend/widgets/highlight_text.dart';
 import '../ui/priority_style.dart';
 
 class TaskCard extends StatelessWidget {
   final TaskModel task;
   final VoidCallback? onTap;
+  final String highlightQuery;
 
-  const TaskCard({super.key, required this.task, this.onTap});
+  const TaskCard({
+    super.key,
+    required this.task,
+    this.onTap,
+    this.highlightQuery = '',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -37,15 +44,15 @@ class TaskCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      child: Text(
-                        task.title?.trim().isNotEmpty == true
+                      child: HighlightedText(
+                        text: task.title?.trim().isNotEmpty == true
                             ? task.title!.trim()
                             : 'Untitled',
+                        query: highlightQuery,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                         maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: AppSpace.md),
@@ -68,13 +75,13 @@ class TaskCard extends StatelessWidget {
                 ),
                 if ((task.description ?? '').trim().isNotEmpty) ...[
                   const SizedBox(height: AppSpace.md),
-                  Text(
-                    task.description!.trim(),
+                  HighlightedText(
+                    text: task.description!.trim(),
+                    query: highlightQuery,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: cs.onSurfaceVariant,
                     ),
                     maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ],

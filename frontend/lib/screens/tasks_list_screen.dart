@@ -188,6 +188,7 @@ class _TaskListScreenState extends ConsumerState<TaskListScreen> {
                 return TaskListItem(
                   task: filtered[index],
                   onDeleteSuccess: () {},
+                  highlightQuery: _searchCtrl.text,
                 );
               },
             ),

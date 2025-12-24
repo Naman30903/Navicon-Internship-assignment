@@ -10,11 +10,13 @@ import 'package:frontend/screens/tasks_detail.dart';
 class TaskListItem extends ConsumerWidget {
   final TaskModel task;
   final VoidCallback onDeleteSuccess;
+  final String highlightQuery;
 
   const TaskListItem({
     super.key,
     required this.task,
     required this.onDeleteSuccess,
+    this.highlightQuery = '',
   });
 
   @override
@@ -37,6 +39,7 @@ class TaskListItem extends ConsumerWidget {
       ),
       child: TaskCard(
         task: task,
+        highlightQuery: highlightQuery,
         onTap: () => TaskDetailsSheet.show(context, ref, task),
       ),
     );
