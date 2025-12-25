@@ -1,0 +1,551 @@
+openapi: 3.0.0
+info:
+  title: Smart Task Manager API
+  version: 1.0.0
+  description: Backend API for task management with auto-classification
+
+servers:
+  - url: https://task-manager-backend-eg19.onrender.com
+
+tags:
+  - name: Tasks
+    description: Task CRUD, listing, classification, and history
+  - name: Classification
+    description: Preview task classification/enrichment
+
+paths:
+  /api/tasks:
+    get:
+      tags: [Tasks]
+      summary: List tasks (with filters + pagination)
+      description: |
+        Returns tasks ordered by `created_at` descending (then `id` descending).
+        Supports filtering by `status`, `category`, and `priority`, and pagination via `limit` and `offset`.
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+        - $ref: '#/components/parameters/Status'
+        - $ref: '#/components/parameters/Category'
+        - $ref: '#/components/parameters/Priority'
+      responses:
+        "200":
+          description: Tasks list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskListResponse'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags: [Tasks]
+      summary: Create a task (with optional auto-classification)
+      description: |
+        Creates a new task. If `description` is provided and `category`/`priority` are not,
+        the server auto-classifies using [`classificationService.classifyTask`](src/services/classification.service.js).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+            examples:
+              minimal:
+                summary: Minimal
+                value:
+                  title: "My task"
+              enriched:
+                summary: With description (auto-classify)
+                value:
+                  title: "Fix production bug"
+                  description: "This is urgent, please fix ASAP"
+                  assigned_to: "user@example.com"
+                  due_date: "2025-12-31T23:59:59Z"
+      responses:
+        "201":
+          description: Task created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/tasks/classify:
+    post:
+      tags: [Classification]
+      summary: Preview classification/enrichment for a description
+      description: |
+        Returns what the server would infer from `description`, without creating a task.
+        Implements [`tasksController.classifyTask`](src/controllers/tasks.controller.js).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClassificationRequest'
+            examples:
+              example1:
+                value:
+                  description: "Schedule a meeting with John Doe today at Site Office 2pm"
+      responses:
+        "200":
+          description: Classification result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClassificationResponse'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/tasks/{id}:
+    get:
+      tags: [Tasks]
+      summary: Get a task by id
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        "200":
+          description: Task found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        "400":
+          description: Invalid UUID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+
+    patch:
+      tags: [Tasks]
+      summary: Update a task by id
+      description: |
+        Updates one or more fields. At least one field is required (validated by
+        [`validateTaskUpdate`](src/validators/tasks.schema.js)).
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskUpdate'
+            examples:
+              updateTitle:
+                value:
+                  title: "Updated title"
+              updateStatus:
+                value:
+                  status: "in_progress"
+      responses:
+        "200":
+          description: Task updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags: [Tasks]
+      summary: Delete a task by id
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        "200":
+          description: Task deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/tasks/{id}/history:
+    get:
+      tags: [Tasks]
+      summary: Get task history by task id
+      description: Implements [`tasksController.getTaskHistory`](src/controllers/tasks.controller.js).
+      parameters:
+        - $ref: '#/components/parameters/TaskId'
+      responses:
+        "200":
+          description: History list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskHistoryListResponse'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  parameters:
+    TaskId:
+      name: id
+      in: path
+      required: true
+      description: Task UUID
+      schema:
+        type: string
+        format: uuid
+
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Number of items to return (min 1). Defaults to 10.
+      schema:
+        type: integer
+        minimum: 1
+        default: 10
+
+    Offset:
+      name: offset
+      in: query
+      required: false
+      description: Number of items to skip. Defaults to 0.
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+
+    Status:
+      name: status
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/TaskStatus'
+
+    Category:
+      name: category
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/TaskCategory'
+
+    Priority:
+      name: priority
+      in: query
+      required: false
+      schema:
+        $ref: '#/components/schemas/TaskPriority'
+
+  responses:
+    BadRequest:
+      description: Validation or request error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    TaskCategory:
+      type: string
+      enum: [scheduling, finance, technical, safety, general]
+
+    TaskPriority:
+      type: string
+      enum: [high, medium, low]
+
+    TaskStatus:
+      type: string
+      enum: [pending, in_progress, completed]
+
+    Task:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        category:
+          $ref: '#/components/schemas/TaskCategory'
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        assigned_to:
+          type: string
+          nullable: true
+          description: Email of assignee
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+        extracted_entities:
+          type: object
+          description: Heuristic extraction output
+          additionalProperties: true
+        suggested_actions:
+          type: object
+          description: Suggested actions output
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required: [id, title]
+
+    TaskCreate:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        category:
+          $ref: '#/components/schemas/TaskCategory'
+          description: Optional; auto-filled from description if omitted
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+          description: Optional; auto-filled from description if omitted
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+          description: Optional; defaults to pending if omitted
+        assigned_to:
+          type: string
+          format: email
+        due_date:
+          type: string
+          format: date-time
+        extracted_entities:
+          type: object
+          additionalProperties: true
+        suggested_actions:
+          type: object
+          additionalProperties: true
+
+    TaskUpdate:
+      type: object
+      additionalProperties: false
+      description: At least one field must be supplied.
+      properties:
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        category:
+          $ref: '#/components/schemas/TaskCategory'
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        assigned_to:
+          type: string
+          format: email
+        due_date:
+          type: string
+          format: date-time
+        extracted_entities:
+          type: object
+          additionalProperties: true
+        suggested_actions:
+          type: object
+          additionalProperties: true
+
+    Pagination:
+      type: object
+      additionalProperties: false
+      properties:
+        total:
+          type: integer
+          minimum: 0
+        limit:
+          type: integer
+          minimum: 1
+        offset:
+          type: integer
+          minimum: 0
+        totalPages:
+          type: integer
+          minimum: 0
+      required: [total, limit, offset, totalPages]
+
+    TaskResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/Task'
+      required: [success, data]
+
+    TaskListResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+      required: [success, data, pagination]
+
+    ClassificationRequest:
+      type: object
+      additionalProperties: false
+      required: [description]
+      properties:
+        description:
+          type: string
+          minLength: 1
+
+    ClassificationResult:
+      type: object
+      additionalProperties: false
+      properties:
+        category:
+          $ref: '#/components/schemas/TaskCategory'
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+        extracted_entities:
+          type: object
+          additionalProperties: true
+        suggested_actions:
+          type: object
+          additionalProperties: true
+      required: [category, priority, extracted_entities, suggested_actions]
+
+    ClassificationResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/ClassificationResult'
+      required: [success, data]
+
+    TaskHistoryAction:
+      type: string
+      enum: [created, updated, status_changed, completed]
+
+    TaskHistory:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          type: string
+          format: uuid
+        task_id:
+          type: string
+          format: uuid
+        action:
+          $ref: '#/components/schemas/TaskHistoryAction'
+        old_value:
+          type: object
+          nullable: true
+          additionalProperties: true
+        new_value:
+          type: object
+          nullable: true
+          additionalProperties: true
+        changed_by:
+          type: string
+        changed_at:
+          type: string
+          format: date-time
+      required: [id, task_id, action, changed_by, changed_at]
+
+    TaskHistoryListResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskHistory'
+      required: [success, data]
+
+    MessageResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+      required: [success, message]
+
+    ErrorItem:
+      type: object
+      additionalProperties: true
+      properties:
+        message:
+          type: string
+
+    ErrorResponse:
+      type: object
+      additionalProperties: true
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ErrorItem'
+        error:
+          type: string
+      required: [success, message]
