@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:frontend/models/task_classification_model.dart';
 import '../api/api_client.dart';
+import '../models/task_history.dart';
 import '../models/task_model.dart';
 import '../models/pagination_model.dart';
 
@@ -155,6 +156,24 @@ class TaskRepository {
       );
     }
     throw Exception(response.data['error'] ?? 'Failed to classify task');
+  }
+
+  /// Get task history
+  Future<List<TaskHistory>> getTaskHistory(String taskId) async {
+    try {
+      final response = await _apiClient.get('/tasks/$taskId/history');
+
+      if (response.data['success'] == true) {
+        final data = response.data['data'] as List;
+        return data.map((json) => TaskHistory.fromJson(json)).toList();
+      } else {
+        throw Exception(
+          response.data['message'] ?? 'Failed to fetch task history',
+        );
+      }
+    } on DioException catch (e) {
+      throw _handleDioError(e);
+    }
   }
 
   Exception _handleDioError(DioException error) {

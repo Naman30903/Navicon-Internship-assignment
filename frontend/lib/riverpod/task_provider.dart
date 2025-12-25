@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/models/task_classification_model.dart';
+import 'package:frontend/models/task_history.dart';
 import '../api/api_client.dart';
 import '../models/task_model.dart';
 import '../repositories/task_repository.dart';
@@ -37,6 +38,13 @@ final taskByIdProvider = FutureProvider.autoDispose.family<TaskModel, String>((
   final repository = ref.watch(taskRepositoryProvider);
   return repository.getTaskById(id);
 });
+
+// Task History Provider
+final taskHistoryProvider = FutureProvider.autoDispose
+    .family<List<TaskHistory>, String>((ref, taskId) async {
+      final repository = ref.watch(taskRepositoryProvider);
+      return repository.getTaskHistory(taskId);
+    });
 
 // Create Task Provider (async notifier for mutations)
 final createTaskProvider =

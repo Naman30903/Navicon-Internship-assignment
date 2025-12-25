@@ -26,8 +26,36 @@ class TaskListItem extends ConsumerWidget {
     return Dismissible(
       key: ValueKey(task.id),
       direction: DismissDirection.endToStart,
-      confirmDismiss: (_) => _showDeleteConfirmation(context),
-      onDismissed: (_) => _handleDelete(context, ref),
+      confirmDismiss: (_) async {
+        final confirmed = await _showDeleteConfirmation(context);
+        if (!confirmed) return false;
+
+        try {
+          await ref.read(deleteTaskProvider.notifier).deleteTask(task.id);
+
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('Task deleted')));
+          });
+
+          onDeleteSuccess();
+          return true;
+        } catch (e) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(_uiError(e)),
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+            );
+          });
+          return false;
+        }
+      },
+      // no onDismissed: delete is handled in confirmDismiss to avoid double-call
       background: Container(
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.symmetric(horizontal: AppSpace.lg),
@@ -66,25 +94,8 @@ class TaskListItem extends ConsumerWidget {
         false;
   }
 
-  Future<void> _handleDelete(BuildContext context, WidgetRef ref) async {
-    try {
-      await ref.read(deleteTaskProvider.notifier).deleteTask(task.id);
-
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Task deleted')));
-      onDeleteSuccess();
-    } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to delete: $e'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
-      // Re-fetch to restore if delete failed
-      ref.invalidate(taskListProvider);
-    }
+  String _uiError(Object err) {
+    final s = err.toString();
+    return s.startsWith('Exception: ') ? s.replaceFirst('Exception: ', '') : s;
   }
 }

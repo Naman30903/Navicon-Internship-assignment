@@ -39,6 +39,7 @@ dependencies:
   flutter_riverpod: ^3.0.3
   flutter_dotenv: ^6.0.0
   connectivity_plus: ^7.0.0
+  timeago: ^3.7.1
 
 dev_dependencies:
   flutter_test:
